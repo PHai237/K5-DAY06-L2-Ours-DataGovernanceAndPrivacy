@@ -14,11 +14,48 @@ from src.common.gt_guard import GroundTruthAccessError, disable_gt_guard, enable
 from src.common.offline import NetworkBlockedError, disable_offline_guard, enable_offline_guard
 
 
-def test_template_pipeline_fails_clearly_not_silently(tmp_path):
-    rc = runner.main(["--track", "t02", "--output", str(tmp_path), "--offline"])
-    assert rc == 3                                   # NotImplemented -> explicit exit code
+def test_t02_pipeline_runs_successfully(tmp_path):
+    rc = runner.main([
+        "--track", "t02",
+        "--output", str(tmp_path),
+        "--offline",
+        "--seed", "42",
+    ])
+
+    assert rc == 0
+
     info = json.loads((tmp_path / "run_info.json").read_text())
-    assert info["status"] == 3 and info["seed"] == 42
+    assert info["status"] == 0
+    assert info["seed"] == 42
+
+    for filename in [
+        "ranked_review.csv",
+        "review_queue.csv",
+        "contact_sheet.html",
+        "decision.json",
+        "decision_log.csv",
+    ]:
+        assert (tmp_path / filename).exists(), filename
+
+
+def test_unimplemented_pipeline_fails_clearly(tmp_path, monkeypatch):
+    from src import pipeline
+
+    def unfinished_pipeline(ctx):
+        raise NotImplementedError("Test unfinished pipeline")
+
+    monkeypatch.setattr(pipeline, "run", unfinished_pipeline)
+
+    rc = runner.main([
+        "--track", "t02",
+        "--output", str(tmp_path),
+        "--offline",
+    ])
+
+    assert rc == 3
+
+    info = json.loads((tmp_path / "run_info.json").read_text())
+    assert info["status"] == 3
 
 
 def _run_baseline(out):
