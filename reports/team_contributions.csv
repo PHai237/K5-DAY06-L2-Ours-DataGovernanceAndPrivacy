@@ -1,6 +1,6 @@
 member,git_author_name,git_email,role,modules_files,commit_shas,evidence_note,presenter
-Member 1,,,Lead / Integrator,src/main.py; configs/,,,
-Member 2,,,Data & fixtures,fixtures/; tools/,,,
-Member 3,,,Core algorithm,src/pipeline.py,,,
-Member 4,,,QA / metric,tests/; reports/metrics_*.json,,,
-Member 5,,,Human review + report,reports/group_report.md; demo/,,,
+Pham Hai,PHai237,stone23072004@gmail.com,Lead / Integrator,src/pipeline.py; configs/; src/t02/review_flow.py,4fa806e; 00bfc7d; 96ba65b,Pipeline wiring and human review flow,yes
+Bui Van Binh,binhbui8112004,binhbui8112004@users.noreply.github.com,Data & Baseline,src/t02/baseline.py; reports/t02_data_baseline.md,7612650,Laplacian baseline and data profiling,yes
+Loversky02,loversky02,bao232030333@lms.utc.edu.vn,Core algorithm,src/t02/scoring.py,c5b75bf,Multi-signal scoring and FP/FN rescue,yes
+Thao Linh,ThaoLinh0423,nguyenlinhthao666@gmail.com,QA / Metric & Testing,tests/test_t02_qa.py; reports/metric_contract.md; reports/group_report.md,,QA 6 tests suite and metric contract,yes
+Hoang,hoang,testhoang@msb.com.vn,Human review + report,reports/group_report.md; demo/,,Group report and human review verification,yes

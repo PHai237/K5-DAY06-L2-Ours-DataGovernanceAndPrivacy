@@ -1,20 +1,27 @@
 
+import sys
 from pathlib import Path
 import hashlib
-import cv2
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+try:
+    import cv2
+
+    def laplacian_variance(image_path):
+        image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise ValueError(f"Cannot read image: {image_path}")
+        return float(cv2.Laplacian(image, cv2.CV_64F).var())
+except ImportError:
+    from src.common.image_ops import laplacian_variance as _lap_var, load_rgb
+
+    def laplacian_variance(image_path):
+        return _lap_var(load_rgb(image_path))
 
 ROOT = Path("fixtures/t02_raw_qc")
 OUTPUT = Path("out/baseline")
-
-
-def laplacian_variance(image_path):
-    image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        raise ValueError(f"Cannot read image: {image_path}")
-
-    return float(cv2.Laplacian(image, cv2.CV_64F).var())
 
 def verify_manifest():
     manifest = pd.read_csv(ROOT / "manifest.csv")
