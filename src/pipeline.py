@@ -53,12 +53,19 @@ def review(ctx: RunContext, scored: pd.DataFrame, queue: pd.DataFrame) -> tuple[
     return apply_human_review(ctx, scored, queue)
 
 
-def run(ctx: RunContext) -> None:
+def run(ctx: RunContext, score_provider=None) -> None:
+    """Run the official five-step pipeline.
+
+    ``score_provider`` is a Leader-only integration hook for testing a real
+    review round-trip with existing model predictions while the Core member's
+    ``score_images`` implementation is still in progress. Production calls
+    use the default (Core) scoring function.
+    """
     spec = get_track(ctx.track)
     if ctx.track != "t02":
         raise NotImplementedError("Implement the selected challenge in src/pipeline.py")
     data = load(ctx)                                 # 01 load + provenance
-    scored = process(ctx, data)                      # 02 algorithm (member 3)
+    scored = process(ctx, data) if score_provider is None else score_provider(ctx, data)  # 02
     scored = normalise_predictions(data["images"], scored)
     ctx.stats["n_items"] = len(scored)
     scored.to_csv(ctx.out("ranked_review_raw.csv"), index=False)

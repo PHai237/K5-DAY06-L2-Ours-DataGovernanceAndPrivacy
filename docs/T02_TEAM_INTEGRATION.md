@@ -94,3 +94,33 @@ attached to each decision; audit log appends a record on every run.
 - `configs/lab.yaml` defaults to `owner: TODO...` and `group_id: G00`. The Leader must set real values before running the completed end-to-end pipeline.
 - The prior `.gitattributes` fix `fixtures/** -text` should already be on the team's `main`; this patch does not replace it.
 - Do not stage `.venv/`, `out/`, `data/real/`, hidden GT or private files. Keep actual reviewer data and evidence only as allowed by course policy.
+
+## Leader smoke test — RUN NOW without Member 3's algorithm
+
+This uses the **official random example** for unlabelled review interface input.
+It is **not** a Laplacian baseline, a valid defect prediction or an official
+metric. It exercises the Leader's actual I/O, HTML, overrides, audit, gate
+on the full 96-image fixture without asking Member 3 to finish first.
+
+Use PowerShell, from the repository root:
+
+```powershell
+# 1) Produce a reproducible *sample* score CSV (NO ground truth access).
+.\.venv\Scripts\python.exe -m src.main --track t02 --pipeline src.examples.random_baseline --config configs/t02_review_smoke.yaml --output out/leader_fixture_scores --run-name leader-smoke-scores --offline --seed 42
+
+# 2) Feed those score rows into the REAL Leader's review + audit + gate.
+.\.venv\Scripts\python.exe -m src.main --track t02 --pipeline src.t02.review_from_csv --config configs/t02_review_smoke.yaml --output out/leader_smoke --run-name leader-smoke --offline --seed 42
+
+# 3) Open the offline HTML to review the selected 20 images.
+Start-Process .\out\leader_smoke\contact_sheet.html
+```
+
+Random example contains no `pred_action`, therefore **approve is not valid**
+for those rows. Use **edit + KEEP/RECAPTURE + review_note**, or use a real
+scoring CSV from Member 3 with suggested action. Export the CSV from the HTML
+and copy `review_queue_reviewed.csv` into `out/leader_smoke/`, then re-run
+command #2. Expected before full review: `HOLD/REVIEW_INCOMPLETE` with audit
+entries for edited items. No changes are made to the `fixtures/` tree.
+
+For real end-to-end PoC, use the ordinary official `src.pipeline` once
+Member 3 finishes; **never** use review_from_csv as the submission pipeline.

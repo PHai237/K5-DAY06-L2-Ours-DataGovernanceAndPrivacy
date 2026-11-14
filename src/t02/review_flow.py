@@ -165,9 +165,13 @@ def apply_human_review(ctx: RunContext, scored: pd.DataFrame, queue: pd.DataFram
                 submitted_score = float(row.score)
             except (TypeError, ValueError):
                 raise ValueError(f"Bad score in reviewed CSV for {row.item_id}") from None
-            if str(row.rank).strip() != expected_rank or not math.isclose(
-                submitted_score, expected_score, rel_tol=0.0, abs_tol=0.000001
-            ):
+            expected_action = str(current_queue.loc[row.item_id, "suggested_action"]).strip().upper()
+            submitted_action = str(row.suggested_action).strip().upper()
+            expected_path = str(current_queue.loc[row.item_id, "evidence_path"])
+            if (str(row.rank).strip() != expected_rank
+                or not math.isclose(submitted_score, expected_score, rel_tol=0.0, abs_tol=0.000001)
+                or submitted_action != expected_action
+                or str(row.evidence_path) != expected_path):
                 raise ValueError(
                     f"Stale or modified review queue for {row.item_id}; export a new CSV from current contact sheet"
                 )

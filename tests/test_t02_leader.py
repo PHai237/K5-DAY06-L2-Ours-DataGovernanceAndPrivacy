@@ -163,3 +163,67 @@ def test_stale_review_csv_cannot_override_new_scores(monkeypatch, tmp_path):
     write_review_queue(q, ctx.output_dir / "review_queue_reviewed.csv")
     with pytest.raises(ValueError, match="Stale or modified"):
         pipeline.run(ctx)
+
+
+def test_review_csv_adapter_full_fixture_without_core_scoring(tmp_path, monkeypatch):
+    """Review integration runs on all 96 fixture images without Core implementation."""
+    from src.t02 import review_from_csv
+    from src.common.io import load_config
+
+    input_dir = Path("fixtures/t02_raw_qc")
+    items = pd.read_csv(input_dir / "images.csv", dtype={"image_id": str})
+    # Source data is deliberately UNLABELLED and not a benchmark prediction.
+    # It only checks Leader plumbing against the full real fixture pool.
+    samples = pd.DataFrame({"image_id": items.image_id,
+                            "score": np.linspace(0, 1, len(items))})
+    source = tmp_path / "scores.csv"
+    samples.to_csv(source, index=False)
+    cfg = load_config("configs/t02_review_smoke.yaml")
+    cfg["params"]["review_scores_csv"] = str(source)
+    out = tmp_path / "leader_out"
+    ctx = RunContext(track="t02", input_dir=input_dir, output_dir=out, config=cfg,
+                     seed=42, rng=np.random.default_rng(42),
+                     audit=AuditLog(out / "audit_log.jsonl"))
+    review_from_csv.run(ctx)
+    assert len(pd.read_csv(out / "ranked_review.csv")) == 96
+    queue = pd.read_csv(out / "review_queue.csv", dtype=str).fillna("")
+    assert len(queue) == 20
+    assert (out / "contact_sheet.html").exists()
+    assert json.loads((out / "decision.json").read_text())["canonical"] == "HOLD"
+
+    # An image without model action can still be edited by a reviewer.
+    queue.loc[0, ["reviewer", "reviewer_decision", "override_value", "review_note"]] = [
+        "Leader", "edit", "RECAPTURE", "Manual image inspection"
+    ]
+    write_review_queue(queue, out / "review_queue_reviewed.csv")
+    review_from_csv.run(ctx)
+    result = pd.read_csv(out / "ranked_review.csv")
+    assert result.loc[result.image_id == queue.loc[0, "item_id"], "pred_action"].iloc[0] == "RECAPTURE"
+    events = [json.loads(line) for line in (out / "audit_log.jsonl").read_text().splitlines()]
+    assert any(x["action"] == "override:edit" for x in events)
+    assert json.loads((out / "decision.json").read_text())["canonical"] == "HOLD"
+
+
+def test_review_csv_adapter_rejects_missing_or_ground_truth_source(tmp_path):
+    from src.t02.review_from_csv import _read_scores
+    ctx = _make_ctx(tmp_path)
+    ctx.config["params"]["review_scores_csv"] = str(tmp_path / "missing.csv")
+    with pytest.raises(FileNotFoundError, match="not found"):
+        _read_scores(ctx, {})
+    ctx.config["params"]["review_scores_csv"] = "fixtures/t02_raw_qc/gt/labels.csv"
+    with pytest.raises(ValueError, match="ground truth"):
+        _read_scores(ctx, {})
+
+
+def test_review_queue_rejects_stale_suggested_action(monkeypatch, tmp_path):
+    ctx = _make_ctx(tmp_path)
+    monkeypatch.setattr(pipeline, "process", _fake_scores)
+    pipeline.run(ctx)
+    q = pd.read_csv(ctx.output_dir / "review_queue.csv", dtype=str).fillna("")
+    q.loc[0, ["reviewer", "reviewer_decision", "review_note"]] = [
+        "Leader", "approve", "Reviewed"
+    ]
+    q.loc[0, "suggested_action"] = "KEEP"  # tampered/stale prediction
+    write_review_queue(q, ctx.output_dir / "review_queue_reviewed.csv")
+    with pytest.raises(ValueError, match="Stale or modified"):
+        pipeline.run(ctx)

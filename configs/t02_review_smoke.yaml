@@ -1,0 +1,14 @@
+# LEADER REVIEW SMOKE TEST ONLY. Not the official PoC / final config.
+# Use this with src.t02.review_from_csv, never as the default submission.
+track_config: tracks/t02.yaml
+track: t02
+group_id: T02_SMOKE
+owner: "T02 Leader (smoke review)"
+input: fixtures/t02_raw_qc
+output: out/leader_smoke
+seed: 42
+offline: true
+strict_provenance: true
+params:
+  budget: 20
+  review_scores_csv: out/leader_fixture_scores/ranked_review.csv
