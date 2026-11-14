@@ -1,6 +1,5 @@
 member,git_author_name,git_email,role,modules_files,commit_shas,evidence_note,presenter
-Member 1,,,Lead / Integrator,src/main.py; configs/,,,
-Member 2,,,Data & fixtures,fixtures/; tools/,,,
-Member 3,,,Core algorithm,src/pipeline.py,,,
-Member 4,,,QA / metric,tests/; reports/metrics_*.json,,,
-Member 5,,,Human review + report,reports/group_report.md; demo/,,,
+[Tên Leader],PHai237,[CẦN XÁC NHẬN],Lead / Integration / Human review,src/pipeline.py; src/t02/review_flow.py; src/t02/review_from_csv.py; tests/test_t02_leader.py,96ba65bcd1d358828ae069cfa462d67580bb6d2d; 00bfc7dfefb8bf19ce06e62064d651b6264967e5,Review/override/audit/decision; source verified in repo; disclose GenAI assistance,[CẦN ĐIỀN]
+[Tên TV2],,,Data / Laplacian baseline,src/t02/baseline.py; reports/data_profile.md,,[CHỜ COMMIT và báo cáo thật],[CẦN ĐIỀN]
+[Tên TV3],,,Core algorithm,src/t02/scoring.py,,[CHỜ COMMIT và kết quả thật],[CẦN ĐIỀN]
+[Tên TV4],,,QA / Metric / Report,tests/test_t02_qa.py; reports/; demo/,,"[CHỜ COMMIT, tests và report thật]",[CẦN ĐIỀN]
