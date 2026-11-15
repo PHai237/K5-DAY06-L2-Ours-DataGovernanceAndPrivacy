@@ -1,5 +1,5 @@
 # Day06 Data Lab — common commands.  Usage: make <target> TRACK=t02
-PY ?= .venv/bin/python
+PY ?= py
 TRACK ?= t02
 OUT ?= out
 PRED = $(shell $(PY) -c "from src.metrics.tracks import get_track;print(get_track('$(TRACK)').pred_file)")
@@ -25,8 +25,8 @@ fixtures:            ## instructor only: regenerate fixtures (needs the private 
 	@test -f tools/make_fixtures.py || { echo "tools/make_fixtures.py is instructor-only (private overlay not installed)"; exit 1; }
 	$(PY) -m tools.make_fixtures
 
-baseline:            ## random baseline wiring example (t01, t02, t11, t13)
-	$(PY) -m src.main --track $(TRACK) --pipeline src.examples.random_baseline --output $(OUT)/baseline --run-name baseline --offline --seed 42
+baseline:            ## real T02 Laplacian baseline
+	$(PY) -m src.main --config configs/lab.yaml --track t02 --pipeline src.t02.baseline --output $(OUT)/baseline --run-name baseline --offline --seed 42
 
 run:                 ## your PoC (src/pipeline.py)
 	$(PY) -m src.main --config configs/lab.yaml --track $(TRACK) --output $(OUT)/poc --run-name poc --offline --seed 42
