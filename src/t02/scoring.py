@@ -151,9 +151,11 @@ def extract_image_features(image_path: Path) -> dict[str, float]:
 
 def calibrate_dev_references(df: pd.DataFrame, dev_split: str = "dev") -> dict[str, dict[str, float]]:
     """Estimate reference medians strictly from the dev split (no eval leakage)."""
-    dev = df[df["split"].astype(str) == dev_split] if "split" in df.columns else pd.DataFrame()
+    if "split" not in df.columns:
+        raise ValueError("Missing split column for dev calibration")
+    dev = df[df["split"].astype(str) == dev_split]
     if dev.empty:
-        dev = df
+        raise ValueError(f"No dev data for split {dev_split!r}; refusing eval calibration")
 
     light_mean = dict(DEFAULT_LIGHT_MEAN_REF)
     light_p95 = dict(DEFAULT_LIGHT_P95_REF)
@@ -293,20 +295,20 @@ def analyze_fp_fn(input_dir: Path, scored: pd.DataFrame) -> dict[str, object]:
     base_top20 = set(eval_df.sort_values("baseline_score", ascending=False).head(20)["image_id"])
     core_top20 = set(eval_df.sort_values("score", ascending=False).head(20)["image_id"])
 
-    # Clean cam_B images falsely pushed into Top-20 by raw global Laplacian
-    cam_b_fp_in_baseline = eval_df[
+    # Images selected by baseline but not by core; no GT verification
+    baseline_only = eval_df[
         eval_df["image_id"].isin(base_top20 - core_top20)
     ][["image_id", "camera_id", "light", "lap", "score", "pred_defect_type", "reason"]]
 
-    # Glare / compression defects rescued into Top-20 by Core Algorithm
-    rescued_by_core = eval_df[
+    # Images selected by core but not by baseline; no GT verification
+    core_only = eval_df[
         eval_df["image_id"].isin(core_top20 - base_top20)
     ][["image_id", "camera_id", "light", "lap", "score", "pred_defect_type", "reason"]]
 
     return {
         "eval_count": len(eval_df),
-        "baseline_fp_resolved": cam_b_fp_in_baseline.to_dict(orient="records"),
-        "baseline_fn_rescued": rescued_by_core.to_dict(orient="records"),
+        "baseline_only_top20": baseline_only.to_dict(orient="records"),
+        "core_only_top20": core_only.to_dict(orient="records"),
         "defect_type_counts_all": scored["pred_defect_type"].value_counts().to_dict(),
         "defect_type_counts_eval_top20": (
             eval_df.sort_values("score", ascending=False).head(20)["pred_defect_type"].value_counts().to_dict()
@@ -342,11 +344,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[T02 Core] Wrote {len(ranked)} rows to {out_csv}")
     print(f"[T02 Core] Predicted defect distribution (all 96): {report['defect_type_counts_all']}")
     print(f"[T02 Core] Eval Top-20 defect distribution: {report['defect_type_counts_eval_top20']}")
-    print("\n--- Baseline False Positives Resolved by Core Algorithm (Eval Split) ---")
-    for item in report["baseline_fp_resolved"]:
+    print("\n--- Baseline-only Top-20 (not verified FP) (Eval Split) ---")
+    for item in report["baseline_only_top20"]:
         print(f"  {item['image_id']} ({item['camera_id']}, {item['light']}): lap={item['lap']:.1f} -> score={item['score']:.3f} [{item['pred_defect_type']}]")
-    print("\n--- Baseline False Negatives Rescued by Core Algorithm (Eval Split) ---")
-    for item in report["baseline_fn_rescued"]:
+    print("\n--- Core-only Top-20 (not verified FN) (Eval Split) ---")
+    for item in report["core_only_top20"]:
         print(f"  {item['image_id']} ({item['camera_id']}, {item['light']}): lap={item['lap']:.1f} -> score={item['score']:.3f} [{item['pred_defect_type']}] ({item['reason']})")
     return 0
 
