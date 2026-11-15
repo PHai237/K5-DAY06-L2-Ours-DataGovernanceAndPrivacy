@@ -93,3 +93,75 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def run(ctx):
+    """Official Laplacian baseline using the same T02 pipeline as PoC."""
+    import json
+    import time
+    from src.pipeline import run as run_pipeline
+
+    if ctx.track != "t02":
+        raise ValueError("Laplacian baseline supports T02 only")
+
+    def score_provider(ctx, data):
+        images = data["images"].copy()
+        started = time.perf_counter()
+
+        images["laplacian_variance"] = images["path"].apply(
+            lambda path: laplacian_variance(ctx.input_dir / path)
+        )
+
+        dev_split = ctx.param("dev_split", "dev")
+        dev = images[images["split"] == dev_split]
+
+        if dev.empty:
+            raise ValueError("Missing dev split for threshold selection")
+
+        threshold = float(
+            dev["laplacian_variance"].quantile(0.20)
+        )
+
+        images["score"] = threshold - images["laplacian_variance"]
+        images["pred_defect_type"] = images["score"].apply(
+            lambda value: "blur" if value > 0 else "none"
+        )
+        images["pred_action"] = images["pred_defect_type"].map({
+            "blur": "RECAPTURE",
+            "none": "KEEP"
+        })
+        images["reason"] = "laplacian_variance"
+
+        # Save threshold and reproducibility information.
+        threshold_info = {
+            "method": "Laplacian Variance",
+            "threshold": threshold,
+            "selection": "dev 20th percentile",
+            "dev_split": dev_split,
+            "dev_count": len(dev),
+            "total_images": len(images),
+            "review_budget": int(ctx.param("budget", 20)),
+            "seed": ctx.seed,
+        }
+
+        ctx.out("baseline_threshold.json").write_text(
+            json.dumps(threshold_info, indent=2),
+            encoding="utf-8"
+        )
+
+        ctx.stats["baseline_threshold"] = threshold
+        ctx.stats["baseline_method"] = "laplacian_variance"
+        ctx.stats["scoring_seconds"] = round(
+            time.perf_counter() - started, 6
+        )
+
+        if ctx.audit:
+            ctx.audit.log(
+                actor="laplacian_baseline",
+                action="threshold_selected",
+                item_id="t02_dev",
+                after=threshold_info
+            )
+
+        return images
+
+    run_pipeline(ctx, score_provider=score_provider)
