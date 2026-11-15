@@ -1,6 +1,5 @@
 member,git_author_name,git_email,role,modules_files,commit_shas,evidence_note,presenter
-Member 1,,,Lead / Integrator,src/main.py; configs/,,,
-Member 2,,,Data & fixtures,fixtures/; tools/,,,
-Member 3,,,Core algorithm,src/pipeline.py,,,
-Member 4,,,QA / metric,tests/; reports/metrics_*.json,,,
-Member 5,,,Human review + report,reports/group_report.md; demo/,,,
+Phạm Hải,PHai237,,Lead / Integrator / Human Review & Report,src/pipeline.py; configs/lab.yaml; tools/t02_real/; docs/T02_REAL_DATA.md; reports/group_report.md,66936c9; 59836e4; 338fca6; 2460a8b,"Leader integrated baseline/core/QA, real 125-image pipeline run; original member work attributed separately",Chưa phân công
+Phạm Việt Hoàng,hoang,,Data & Laplacian baseline,src/t02/baseline.py; data exploration,7612650; d5513ee,Original author of baseline and fixture audit; leader integrated official runner,Chưa phân công
+Bùi Quốc Bình,binhbui8112004,,Core multi-signal scoring,src/t02/scoring.py,c5b75bf,Original Core scoring author; leader applied dev guard / neutral Top-20 labels,Chưa phân công
+Thảo Linh,ThaoLinh0423,,QA / Testing,tests/test_t02_qa.py,58fdab5,"QA tests supplied by this branch, six tests integrated; full name not yet verified",Chưa phân công
